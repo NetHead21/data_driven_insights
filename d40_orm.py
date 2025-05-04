@@ -1,3 +1,4 @@
+import datetime
 import json
 import os
 
@@ -29,6 +30,15 @@ class IntegerField(Field):
         if not isinstance(value, int):
             raise TypeError("Expected an integer")
         super().__set__(instance, value)
+
+
+class AutoTimestampField(StringField):
+    def __get__(self, instance, owner):
+        if not hasattr(instance, self.private_name):
+            setattr(instance, self.private_name, datetime.datetime.now().isoformat())
+        if not hasattr(instance, self.private_name):
+            now = datetime.datetime.now().isoformat()
+            self.__set__(instance, now)
 
 
 class Model:
