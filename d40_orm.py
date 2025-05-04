@@ -1,3 +1,7 @@
+import json
+import os
+
+
 class Field:
     def __init__(self, required=False):
         self.required = required
@@ -52,6 +56,24 @@ class Model:
 
     def to_dict(self):
         return {key: getattr(self, key) for key in self._get_fields()}
+
+    def _get_file_name(self):
+        return f"{self.__class__.__name__}.json"
+
+    def save(self):
+        file_name = self._get_file_name()
+
+        data = []
+        if os.path.exists(file_name):
+            with open(file_name, "r") as file:
+                try:
+                    data = json.load(file)
+                except json.JSONDecodeError:
+                    pass
+
+        data.append(self.to_dict())
+        with open(file_name, "w") as file:
+            json.dump(data, file, indent=2)
 
 
 class User(Model):
