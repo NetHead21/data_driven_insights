@@ -24,3 +24,18 @@ class IntegerFrield(Field):
         if not isinstance(value, int):
             raise TypeError("Expected an integer")
         super().__set__(instance, value)
+
+
+class Model:
+    def __init__(self, **kwargs):
+        for key, value in kwargs.items():
+            if not hasattr(self.__class__, key):
+                raise AttributeError(f"Unknown field: {key}")
+            setattr(self, key, value)
+
+    def to_dict(self):
+        return {
+            key: getattr(self, key)
+            for key in self.__class__.__dict__
+            if isinstance(getattr(self.__class__, key), Field)
+        }
