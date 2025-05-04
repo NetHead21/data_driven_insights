@@ -141,3 +141,10 @@ if __name__ == "__main__":
 
     # test error
     # user2 = User(age=12)
+
+    users = User.filter(name="John Doe")
+    for user in users:
+        print(f"Found user: {user.name} is {user.age} years old")
+
+    # test error
+    user = User.get(name="Charlie")
