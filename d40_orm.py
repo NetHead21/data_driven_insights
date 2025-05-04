@@ -30,9 +30,14 @@ class Model:
     _fields_cache = None
 
     def __init__(self, **kwargs):
+        fields = self._get_fields()
+        for field_name, field in fields.items():
+            if field.required and field_name not in kwargs:
+                raise ValueError(f"Missing required field: {field_name}")
         for key, value in kwargs.items():
-            if not hasattr(self.__class__, key):
+            if key not in self._get_fields():
                 raise AttributeError(f"Unknown field: {key}")
+            # Use the descriptor logic to validate and set the value
             setattr(self, key, value)
 
     @classmethod
@@ -57,3 +62,6 @@ class User(Model):
 if __name__ == "__main__":
     user = User(name="Juniven", age=30)
     print(user.to_dict())
+
+    # test error
+    user2 = User(age=12)
