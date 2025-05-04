@@ -3,8 +3,9 @@ import os
 
 
 class Field:
-    def __init__(self, required=False):
+    def __init__(self, required=False, default=None):
         self.required = required
+        self.default = default
 
     def __set_name__(self, owner, name):
         self.private_name = "_" + name
@@ -36,15 +37,24 @@ class Model:
     def __init__(self, **kwargs):
         fields = self._get_fields()
         for field_name, field in fields.items():
-            if field.required and field_name not in kwargs:
-                raise ValueError(f"Missing required field: {field_name}")
-        for key, value in kwargs.items():
-            if key not in self._get_fields():
-                raise AttributeError(f"Unknown field: {key}")
-            # Use the descriptor logic to validate and set the value
-            setattr(self, key, value)
+            if field.required and field_name not in kwargs and field.default is None:
+                raise ValueError(
+                    f"Missing required field '{field_name}' in {self.__class__.__name__}"
+                )
+            if field_name in kwargs:
+                setattr(self, field_name, kwargs[field_name])
+            elif field.default is not None:
+                setattr(self, field_name, field.default)
 
-    @classmethod
+        # Use the descriptor logic to validate and set the value
+        for key, value in kwargs.items():
+            if key in fields:
+                setattr(self, key, value)
+            else:
+                raise AttributeError(
+                    f"'{key}' is not a valid field for class '{self.__class__.__name__}'"
+                )
+
     def _get_fields(cls):
         if cls._fields_cache is None:
             cls._fields_cache = {
