@@ -75,6 +75,31 @@ class Model:
         with open(file_name, "w") as file:
             json.dump(data, file, indent=2)
 
+    @classmethod
+    def all(cls):
+        file_name = f"{cls.__name__}.json"
+        if not os.path.exists(file_name):
+            return []
+
+        with open(file_name, "r") as file:
+            try:
+                raw_data = json.load(file)
+                return [cls(**item) for item in raw_data]
+            except json.JSONDecodeError:
+                return []
+
+
+class IDField(IntegerField):
+    def __set__(self, intance, value):
+        raise AttributeError("ID is read-only")
+
+    def __get__(self, instance, owner):
+        if not hasattr(instance, "_id"):
+            import random
+
+            instance._id = random.randint(1000, 9999)
+        return instance._id
+
 
 class User(Model):
     name = StringField(required=True)
@@ -83,7 +108,14 @@ class User(Model):
 
 if __name__ == "__main__":
     user = User(name="Juniven", age=30)
-    print(user.to_dict())
+    user.save()
+
+    user2 = User(name="John", age=25)
+    user2.save()
+
+    users = User.all()
+    for user in users:
+        print(f"{user.name} is {user.age} years old")
 
     # test error
-    user2 = User(age=12)
+    # user2 = User(age=12)
