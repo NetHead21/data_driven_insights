@@ -2,8 +2,8 @@ class Field:
     def __init__(self, required=False):
         self.required = required
 
-    def __stet_name__(self, owner, name):
-        self.private_name = "=" + name
+    def __set_name__(self, owner, name):
+        self.private_name = "_" + name
 
     def __get__(self, instance, owner):
         return getattr(instance, self.private_name, None)
@@ -14,12 +14,12 @@ class Field:
 
 class StringField(Field):
     def __set__(self, instance, value):
-        if not instance(value, str):
+        if not isinstance(value, str):
             raise TypeError("Expected a string")
         super().__set__(instance, value)
 
 
-class IntegerFrield(Field):
+class IntegerField(Field):
     def __set__(self, instance, value):
         if not isinstance(value, int):
             raise TypeError("Expected an integer")
@@ -36,6 +36,16 @@ class Model:
     def to_dict(self):
         return {
             key: getattr(self, key)
-            for key in self.__class__.__dict__
-            if isinstance(getattr(self.__class__, key), Field)
+            for key, field in self.__class__.__dict__.items()
+            if isinstance(field, Field)
         }
+
+
+class User(Model):
+    name = StringField(required=True)
+    age = IntegerField()
+
+
+if __name__ == "__main__":
+    user = User(name="Juniven", age=30)
+    print(user.to_dict())
