@@ -88,6 +88,30 @@ class Model:
             except json.JSONDecodeError:
                 return []
 
+    @classmethod
+    def filter(cls, **kwargs):
+        results = []
+        for obj in cls.all():
+            match = True
+
+            for key, value in kwargs.items():
+                if getattr(obj, key) != value:
+                    match = False
+                    break
+            if match:
+                results.append(obj)
+        return results
+
+    @classmethod
+    def get(cls, **kwargs):
+        matches = cls.filter(**kwargs)
+        if not matches:
+            raise ValueError("No {cls.__name__} found with {kwargs}")
+
+        if len(matches) > 1:
+            raise ValueError("Multiple {cls.__name__} instance match {kwargs}")
+        return matches[0]
+
 
 class IDField(IntegerField):
     def __set__(self, intance, value):
@@ -107,11 +131,9 @@ class User(Model):
 
 
 if __name__ == "__main__":
-    user = User(name="Juniven", age=30)
-    user.save()
-
-    user2 = User(name="John", age=25)
-    user2.save()
+    User(name="John Doe", age=30).save()
+    User(name="Jane Doe", age=25).save()
+    User(name="Juniven", age=30).save()
 
     users = User.all()
     for user in users:
