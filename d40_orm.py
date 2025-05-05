@@ -65,6 +65,13 @@ class Model:
                     f"'{key}' is not a valid field for class '{self.__class__.__name__}'"
                 )
 
+    @classmethod
+    def get_table_name(cls):
+        if hasattr(cls, "Meta") and hasattr(cls.Meta, "table_name"):
+            return cls.Meta.table_name
+        return f"{cls.__name__}.json"
+
+    @classmethod
     def _get_fields(cls):
         if cls._fields_cache is None:
             cls._fields_cache = {
@@ -81,7 +88,7 @@ class Model:
         return f"{self.__class__.__name__}.json"
 
     def save(self):
-        file_name = self._get_file_name()
+        file_name = self.get_table_name()
 
         data = []
         if os.path.exists(file_name):
@@ -97,7 +104,7 @@ class Model:
 
     @classmethod
     def all(cls):
-        file_name = f"{cls.__name__}.json"
+        file_name = cls.get_table_name()
         if not os.path.exists(file_name):
             return []
 
@@ -149,6 +156,9 @@ class User(Model):
     name = StringField(required=True)
     age = IntegerField()
 
+    class Meta:
+        table_name = "users_data.json"
+
 
 if __name__ == "__main__":
     User(name="John Doe", age=30).save()
@@ -167,4 +177,4 @@ if __name__ == "__main__":
         print(f"Found user: {user.name} is {user.age} years old")
 
     # test error
-    user = User.get(name="Charlie")
+    # user = User.get(name="Charlie")
