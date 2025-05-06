@@ -47,24 +47,32 @@ class Model:
 
     def __init__(self, **kwargs):
         fields = self._get_fields()
+
+        # Validate required fields
+        missing_fields = [
+            field_name
+            for field_name, field in fields.items()
+            if field.required and field_name not in kwargs and field.default is None
+        ]
+        if missing_fields:
+            raise ValueError(
+                f"Missing required fields {missing_fields} in {self.__class__.__name__}"
+            )
+
+        # Set default values for fields
         for field_name, field in fields.items():
-            if field.required and field_name not in kwargs and field.default is None:
-                raise ValueError(
-                    f"Missing required field '{field_name}' in {self.__class__.__name__}"
-                )
-            if field_name in kwargs:
-                setattr(self, field_name, kwargs[field_name])
-            elif field.default is not None:
+            if field_name not in kwargs and field.default is not None:
                 setattr(self, field_name, field.default)
 
-        # Use the descriptor logic to validate and set the value
+        # Set provided values and validate
+        invalid_fields = [key for key in kwargs if key not in fields]
+        if invalid_fields:
+            raise AttributeError(
+                f"Invalid fields {invalid_fields} for class '{self.__class__.__name__}'"
+            )
+
         for key, value in kwargs.items():
-            if key in fields:
-                setattr(self, key, value)
-            else:
-                raise AttributeError(
-                    f"'{key}' is not a valid field for class '{self.__class__.__name__}'"
-                )
+            setattr(self, key, value)
 
     @classmethod
     def get_table_name(cls):
@@ -91,13 +99,14 @@ class Model:
     def save(self):
         file_name = self.get_table_name()
 
-        data = []
         if os.path.exists(file_name):
-            with open(file_name, "r") as file:
-                try:
+            try:
+                with open(file_name, "r") as file:
                     data = json.load(file)
-                except json.JSONDecodeError:
-                    pass
+            except json.JSONDecodeError:
+                data = []
+        else:
+            data = []
 
         data.append(self.to_dict())
         with open(file_name, "w") as file:
@@ -109,32 +118,33 @@ class Model:
         if not os.path.exists(file_name):
             return []
 
-        with open(file_name, "r") as file:
-            try:
+        try:
+            with open(file_name, "r") as file:
                 raw_data = json.load(file)
-                valid_objects = []
-                for item in raw_data:
-                    try:
-                        valid_objects.append(cls(**item))
-                    except (TypeError, ValueError) as e:
-                        print(f"Skipping invalid entry: {item}. Error: {e}")
-                return valid_objects
-            except json.JSONDecodeError:
-                return []
+        except (json.JSONDecodeError, FileNotFoundError):
+            return []
+
+        return [
+            cls(**item)
+            for item in raw_data
+            if isinstance(item, dict) and cls._is_valid_entry(item)
+        ]
+
+    @classmethod
+    def _is_valid_entry(cls, item):
+        try:
+            cls(**item)
+            return True
+        except (TypeError, ValueError):
+            return False
 
     @classmethod
     def filter(cls, **kwargs):
-        results = []
-        for obj in cls.all():
-            match = True
-
-            for key, value in kwargs.items():
-                if getattr(obj, key) != value:
-                    match = False
-                    break
-            if match:
-                results.append(obj)
-        return results
+        return [
+            obj
+            for obj in cls.all()
+            if all(getattr(obj, key) == value for key, value in kwargs.items())
+        ]
 
     @classmethod
     def get(cls, **kwargs):
