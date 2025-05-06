@@ -1,6 +1,7 @@
 import datetime
 import json
 import os
+import uuid
 
 
 class Field:
@@ -111,7 +112,13 @@ class Model:
         with open(file_name, "r") as file:
             try:
                 raw_data = json.load(file)
-                return [cls(**item) for item in raw_data]
+                valid_objects = []
+                for item in raw_data:
+                    try:
+                        valid_objects.append(cls(**item))
+                    except (TypeError, ValueError) as e:
+                        print(f"Skipping invalid entry: {item}. Error: {e}")
+                return valid_objects
             except json.JSONDecodeError:
                 return []
 
@@ -148,11 +155,39 @@ class IDField(IntegerField):
         if not hasattr(instance, "_id"):
             import random
 
-            instance._id = random.randint(1000, 9999)
+            instance._id = random.randint(999, 9999)
         return instance._id
 
 
+class PrimaryKeyField(IntegerField):
+    _auto_id = 0
+
+    def __init__(self, auto=False, uuid_mode=False):
+        super().__init__()
+        self.auto = auto
+        self.uuid_mode = uuid_mode
+
+    def __get__(self, instance, _):
+        if instance is None:
+            return self
+
+        if not hasattr(instance, self.private_name):
+            value = self._generate_id()
+            setattr(instance, self.private_name, value)
+
+        return getattr(instance, self.private_name, None)
+
+    def _generate_id(self):
+        if self.auto:
+            PrimaryKeyField._auto_id += 1
+            return PrimaryKeyField._auto_id
+        elif self.uuid_mode:
+            return str(uuid.uuid4())
+        return None
+
+
 class User(Model):
+    uid = PrimaryKeyField(auto=True)
     name = StringField(required=True)
     age = IntegerField()
 
@@ -161,9 +196,12 @@ class User(Model):
 
 
 if __name__ == "__main__":
-    User(name="John Doe", age=30).save()
-    User(name="Jane Doe", age=25).save()
-    User(name="Juniven", age=30).save()
+    user1 = User(name="John Doe", age=30)
+    user1.save()
+    user2 = User(name="Jane Doe", age=25)
+    user2.save()
+    user3 = User(name="Juniven", age=30)
+    user3.save()
 
     users = User.all()
     for user in users:
