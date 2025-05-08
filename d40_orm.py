@@ -2,10 +2,11 @@ import datetime
 import json
 import os
 import uuid
+from typing import Any, Dict, List, Optional, Type
 
 
 class Field:
-    def __init__(self, required=False, default=None):
+    def __init__(self, required: bool = False, default: Optional[Any] = None):
         self.required = required
         self.default = default
 
@@ -36,14 +37,13 @@ class IntegerField(Field):
 class AutoTimestampField(StringField):
     def __get__(self, instance, owner):
         if not hasattr(instance, self.private_name):
-            setattr(instance, self.private_name, datetime.datetime.now().isoformat())
-        if not hasattr(instance, self.private_name):
             now = datetime.datetime.now().isoformat()
-            self.__set__(instance, now)
+            setattr(instance, self.private_name, now)
+        return getattr(instance, self.private_name)
 
 
 class Model:
-    _fields_cache = None
+    _fields_cache: Dict[Type["Model"], Dict[str, Field]] = {}
 
     def __init__(self, **kwargs):
         fields = self._get_fields()
@@ -75,30 +75,34 @@ class Model:
             setattr(self, key, value)
 
     @classmethod
-    def get_table_name(cls):
+    def get_table_name(cls) -> str:
         if hasattr(cls, "Meta") and hasattr(cls.Meta, "table_name"):
             return cls.Meta.table_name
         return f"{cls.__name__}.json"
 
     @classmethod
-    def _get_fields(cls):
-        if cls._fields_cache is None:
-            cls._fields_cache = {
+    def _get_fields(cls) -> Dict[str, Field]:
+        if cls not in Model._fields_cache:
+            Model._fields_cache[cls] = {
                 key: field
                 for key, field in cls.__dict__.items()
                 if isinstance(field, Field)
             }
-        return cls._fields_cache
+        return Model._fields_cache[cls]
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         return {key: getattr(self, key) for key in self._get_fields()}
 
-    def _get_file_name(self):
-        return f"{self.__class__.__name__}.json"
-
     def save(self):
+        if hasattr(self, "before_save"):
+            self.before_save()
+
+        if hasattr(self, "clean"):
+            self.clean()
+
         file_name = self.get_table_name()
 
+        # Load existing data
         if os.path.exists(file_name):
             try:
                 with open(file_name, "r") as file:
@@ -108,12 +112,21 @@ class Model:
         else:
             data = []
 
-        data.append(self.to_dict())
+        # Check for existing record and update
+        record = self.to_dict()
+        for i, item in enumerate(data):
+            if item.get("uid") == record.get("uid"):
+                data[i] = record
+                break
+        else:
+            data.append(record)
+
+        # Save updated data
         with open(file_name, "w") as file:
             json.dump(data, file, indent=2)
 
     @classmethod
-    def all(cls):
+    def all(cls) -> List["Model"]:
         file_name = cls.get_table_name()
         if not os.path.exists(file_name):
             return []
@@ -131,7 +144,7 @@ class Model:
         ]
 
     @classmethod
-    def _is_valid_entry(cls, item):
+    def _is_valid_entry(cls, item: Dict[str, Any]) -> bool:
         try:
             cls(**item)
             return True
@@ -139,7 +152,7 @@ class Model:
             return False
 
     @classmethod
-    def filter(cls, **kwargs):
+    def filter(cls, **kwargs) -> List["Model"]:
         return [
             obj
             for obj in cls.all()
@@ -147,50 +160,40 @@ class Model:
         ]
 
     @classmethod
-    def get(cls, **kwargs):
+    def get(cls, **kwargs) -> "Model":
         matches = cls.filter(**kwargs)
         if not matches:
-            raise ValueError("No {cls.__name__} found with {kwargs}")
+            raise ValueError(f"No {cls.__name__} found with {kwargs}")
 
         if len(matches) > 1:
-            raise ValueError("Multiple {cls.__name__} instance match {kwargs}")
+            raise ValueError(f"Multiple {cls.__name__} instances match {kwargs}")
         return matches[0]
 
 
-class IDField(IntegerField):
-    def __set__(self, intance, value):
-        raise AttributeError("ID is read-only")
-
-    def __get__(self, instance, owner):
-        if not hasattr(instance, "_id"):
-            import random
-
-            instance._id = random.randint(999, 9999)
-        return instance._id
-
-
 class PrimaryKeyField(IntegerField):
-    _auto_id = 0
+    _auto_id_counters: Dict[Type["Model"], int] = {}
 
-    def __init__(self, auto=False, uuid_mode=False):
+    def __init__(self, auto: bool = False, uuid_mode: bool = False):
         super().__init__()
         self.auto = auto
         self.uuid_mode = uuid_mode
 
-    def __get__(self, instance, _):
+    def __get__(self, instance, owner):
         if instance is None:
             return self
 
         if not hasattr(instance, self.private_name):
-            value = self._generate_id()
+            value = self._generate_id(owner)
             setattr(instance, self.private_name, value)
 
-        return getattr(instance, self.private_name, None)
+        return getattr(instance, self.private_name)
 
-    def _generate_id(self):
+    def _generate_id(self, owner) -> Any:
         if self.auto:
-            PrimaryKeyField._auto_id += 1
-            return PrimaryKeyField._auto_id
+            if owner not in PrimaryKeyField._auto_id_counters:
+                PrimaryKeyField._auto_id_counters[owner] = 0
+            PrimaryKeyField._auto_id_counters[owner] += 1
+            return PrimaryKeyField._auto_id_counters[owner]
         elif self.uuid_mode:
             return str(uuid.uuid4())
         return None
@@ -200,6 +203,13 @@ class User(Model):
     uid = PrimaryKeyField(auto=True)
     name = StringField(required=True)
     age = IntegerField()
+
+    def clean(self) -> None:
+        if self.age is not None and self.age < 18:
+            raise ValueError("Age must be at least 18")
+
+    def before_save(self) -> None:
+        self.name = self.name.title()
 
     class Meta:
         table_name = "users_data.json"
@@ -212,6 +222,9 @@ if __name__ == "__main__":
     user2.save()
     user3 = User(name="Juniven", age=30)
     user3.save()
+
+    # user4 = User(name="Charlie", age=15)
+    # user4.save()  # This will raise a ValueError
 
     users = User.all()
     for user in users:
