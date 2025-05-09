@@ -7,7 +7,8 @@ from fields.integer_field import IntegerField
 class User(Model):
     uid = PrimaryKeyField(auto=True)
     name = StringField(required=True)
-    age = IntegerField()
+    age = IntegerField(validator=lambda x: isinstance(x, int) and x > 0)
+    role = StringField(choices=["admin", "user"], default="user")
 
     def clean(self) -> None:
         if self.age is not None and self.age < 18:
@@ -21,11 +22,11 @@ class User(Model):
 
 
 if __name__ == "__main__":
-    user1 = User(name="John Doe", age=30)
+    user1 = User(name="John Doe", age=30, role="admin")
     user1.save()
-    user2 = User(name="Jane Doe", age=25)
+    user2 = User(name="Jane Doe", age=25, role="user")
     user2.save()
-    user3 = User(name="Juniven", age=30)
+    user3 = User(name="Juniven", age=30, role="admin")
     user3.save()
 
     # user4 = User(name="Charlie", age=15)

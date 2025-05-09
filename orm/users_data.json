@@ -2,16 +2,19 @@
   {
     "uid": 1,
     "name": "John Doe",
-    "age": 30
+    "age": 30,
+    "role": "admin"
   },
   {
     "uid": 2,
     "name": "Jane Doe",
-    "age": 25
+    "age": 25,
+    "role": "user"
   },
   {
     "uid": 3,
     "name": "Juniven",
-    "age": 30
+    "age": 30,
+    "role": "admin"
   }
 ]
