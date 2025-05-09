@@ -8,6 +8,40 @@ class ValidationError(Exception):
 
 
 class Field:
+    """
+    A descriptor class for defining and validating fields in a model.
+
+    Attributes:
+        required (bool): Indicates if the field is mandatory. Defaults to False.
+        default (Optional[Any]): The default value for the field if not provided. Defaults to None.
+        max_length (Optional[int]): The maximum length of the field's value (applicable to strings). Defaults to None.
+        choices (Optional[List[Any]]): A list of valid values for the field. Defaults to None.
+        validator (Optional[Callable[[Any], bool]]): A custom validation function that takes the field's value
+            and returns True if valid, False otherwise. Defaults to None.
+
+    Methods:
+        __set_name__(owner, name):
+            Sets the private and public names for the field when the class is created.
+
+        __get__(instance, owner):
+            Retrieves the value of the field from the instance.
+
+        __set__(instance, value):
+            Validates and sets the value of the field on the instance.
+
+        validate(value: Any):
+            Validates the value against all constraints (required, max_length, choices, custom validator).
+
+        _validate_max_length(value: Any):
+            Validates that the value does not exceed the maximum length (if applicable).
+
+        _validate_choices(value: Any):
+            Validates that the value is one of the allowed choices (if applicable).
+
+        _validate_custom(value: Any):
+            Validates the value using a custom validation function (if provided).
+    """
+
     def __init__(
         self,
         required: bool = False,
@@ -35,6 +69,10 @@ class Field:
 
     def validate(self, value: Any) -> None:
         """Validate the value against all constraints."""
+        if self.required and value is None:
+            raise ValidationError(
+                f"'{self.public_name}' is required and cannot be None."
+            )
         self._validate_max_length(value)
         self._validate_choices(value)
         self._validate_custom(value)
