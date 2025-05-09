@@ -5,6 +5,90 @@ import json
 
 
 class Model:
+    """
+    A base class for defining models with field validation and persistence.
+
+    This class provides functionality for defining fields, validating data, and persisting
+    model instances to a JSON file. It supports operations like saving, retrieving all records,
+    filtering, and getting specific records.
+
+    Example usage:
+        >>> from fields.field import Field
+        >>> class User(Model):
+        ...     uid = Field(required=True)
+        ...     name = Field(required=True)
+        ...     age = Field(default=18)
+        ...
+        ...     class Meta:
+        ...         table_name = "users.json"
+
+        >>> # Create a new user
+        >>> user = User(uid=1, name="Alice")
+        >>> user.to_dict()
+        {'uid': 1, 'name': 'Alice', 'age': 18}
+
+        >>> # Save the user to the JSON file
+        >>> user.save()
+
+        >>> # Retrieve all users
+        >>> users = User.all()
+        >>> len(users) > 0
+        True
+
+        >>> # Filter users by name
+        >>> filtered_users = User.filter(name="Alice")
+        >>> len(filtered_users) == 1
+        True
+
+        >>> # Get a specific user
+        >>> retrieved_user = User.get(uid=1)
+        >>> retrieved_user.name
+        'Alice'
+
+        >>> # Attempt to get a non-existent user (raises ValueError)
+        >>> User.get(uid=999)  # doctest: +IGNORE_EXCEPTION_DETAIL
+        Traceback (most recent call last):
+        ValueError: No User found with {'uid': 999}
+
+        >>> # Attempt to create a user with missing required fields (raises ValueError)
+        >>> User(name="Bob")  # doctest: +IGNORE_EXCEPTION_DETAIL
+        Traceback (most recent call last):
+        ValueError: Missing required fields ['uid'] in User
+
+    Attributes:
+        _fields_cache (Dict[Type["Model"], Dict[str, Field]]): A cache for storing field definitions
+            for each model class.
+
+    Methods:
+        __init__(**kwargs):
+            Initializes a new instance of the model, validates required fields, and sets default values.
+
+        get_table_name() -> str:
+            Returns the name of the JSON file associated with the model.
+
+        _get_fields() -> Dict[str, Field]:
+            Retrieves the field definitions for the model.
+
+        to_dict() -> Dict[str, Any]:
+            Converts the model instance to a dictionary.
+
+        save():
+            Saves the model instance to the JSON file.
+
+        all() -> List["Model"]:
+            Retrieves all records from the JSON file.
+
+        _is_valid_entry(item: Dict[str, Any]) -> bool:
+            Validates if a dictionary can be converted into a model instance.
+
+        filter(**kwargs) -> List["Model"]:
+            Filters records based on the provided keyword arguments.
+
+        get(**kwargs) -> "Model":
+            Retrieves a single record that matches the provided keyword arguments.
+            Raises a ValueError if no record or multiple records are found.
+    """
+
     _fields_cache: Dict[Type["Model"], Dict[str, Field]] = {}
 
     def __init__(self, **kwargs):
