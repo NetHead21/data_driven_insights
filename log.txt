@@ -1,2 +1,4 @@
 >> Loging session started.
 >> Logging session ended.
+>> Loging session started.
+This is safer and cleaner.
