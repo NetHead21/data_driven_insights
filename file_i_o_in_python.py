@@ -24,6 +24,7 @@ try:
 except FileNotFoundError as e:
     print(f"Error: data.txt not found! {e}")
 
+
 # Read line by line safely
 try:
     with open("data.txt", "r", encoding="utf-8") as file:
@@ -31,3 +32,9 @@ try:
             process(line.rstrip("\n"))
 except FileNotFoundError as e:
     print(f"Error: data.txt not found! {e}")
+
+
+# Write text to a new file
+with open("output.txt", "w", encoding="utf-8") as file:
+    file.write("Hello, world!\n")
+
