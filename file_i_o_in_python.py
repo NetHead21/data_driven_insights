@@ -16,3 +16,9 @@ def process(line: str) -> None:
     pass
 
 
+# Read entire file safely
+try:
+    with open("data.txt", "r", encoding="utf-8") as file:
+        content = file.read()
+except FileNotFoundError as e:
+    print(f"Error: data.txt not found! {e}")
