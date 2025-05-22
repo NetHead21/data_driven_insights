@@ -10,6 +10,7 @@ import csv
 import pickle
 from pathlib import Path
 
+
 # Stub for line-by-line processing
 def process(line: str) -> None:
     """Process a line of text."""
@@ -20,5 +21,13 @@ def process(line: str) -> None:
 try:
     with open("data.txt", "r", encoding="utf-8") as file:
         content = file.read()
+except FileNotFoundError as e:
+    print(f"Error: data.txt not found! {e}")
+
+# Read line by line safely
+try:
+    with open("data.txt", "r", encoding="utf-8") as file:
+        for line in file:
+            process(line.rstrip("\n"))
 except FileNotFoundError as e:
     print(f"Error: data.txt not found! {e}")
