@@ -38,3 +38,7 @@ except FileNotFoundError as e:
 with open("output.txt", "w", encoding="utf-8") as file:
     file.write("Hello, world!\n")
 
+
+# Append text to an existing file
+with open("output.txt", "a", encoding="utf-8") as file:
+    file.write("Additional line\n")
