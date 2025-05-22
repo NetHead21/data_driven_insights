@@ -46,5 +46,14 @@ with open("output.txt", "a", encoding="utf-8") as file:
 
 # JSON serialization
 with open("data.json", "w", encoding="utf-8") as file:
-    json.dump("{"name": "Bob", "age": 30}, file)
+    json.dump({"name": "Bob", "age": 30}, file)
 
+
+# CSV reading with safe file open
+try:
+    with open("data.csv", "r", encoding="utf-8", newline="") as file:
+        reader = csv.DictReader(file)
+        for row in reader:
+            print(row)
+except FileNotFoundError as e:
+    print(f"Error: data.csv not found! {e}")
