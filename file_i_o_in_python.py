@@ -62,3 +62,13 @@ except FileNotFoundError as e:
 # Binary data with pickle
 with open("data.pkl", "wb") as file:
     pickle.dump([1, 2, 3, 4], file)
+
+
+# Pathlib convenience with safe reads
+config_path = Path("config.ini")
+try:
+    text = config_path.read_text(encoding="utf-8")
+except FileNotFoundError as e:
+    print(f"Error: config.ini not found! {e}")
+else:
+    config_path.write_text("[settings]\n", encoding="uft-8")
