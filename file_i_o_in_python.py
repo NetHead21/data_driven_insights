@@ -57,3 +57,8 @@ try:
             print(row)
 except FileNotFoundError as e:
     print(f"Error: data.csv not found! {e}")
+
+
+# Binary data with pickle
+with open("data.pkl", "wb") as file:
+    pickle.dump([1, 2, 3, 4], file)
