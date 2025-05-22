@@ -42,3 +42,9 @@ with open("output.txt", "w", encoding="utf-8") as file:
 # Append text to an existing file
 with open("output.txt", "a", encoding="utf-8") as file:
     file.write("Additional line\n")
+
+
+# JSON serialization
+with open("data.json", "w", encoding="utf-8") as file:
+    json.dump("{"name": "Bob", "age": 30}, file)
+
